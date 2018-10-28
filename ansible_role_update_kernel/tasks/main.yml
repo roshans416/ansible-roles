@@ -30,32 +30,3 @@
   changed_when: result.stat.exists
   notify: 'restart server'
   when: ansible_pkg_mgr == 'apt'
-
-- name: Create VolumeGroup
-  lvg:
-    vg: "{{ vg_name }}"
-    pvs: "{{ device_name }}"
-
-- name: Create new LVM partition
-  lvol:
-    vg: "{{ vg_name }}"
-    lv: "{{ lvm_name }}"
-    size: 80%VG
-
-- name: Create filesystem for LVM
-  filesystem:
-    fstype: xfs
-    dev: "/dev/{{ vg_name }}/{{ lvm_name }}"
-
-- name: Mount the LVM partiton
-  mount:
-    name: /apps/testing
-    src: "/dev/{{ vg_name }}/{{ lvm_name }}"
-    fstype: xfs
-    state: mounted
-
-- name: disable IPv6
-  template:
-    src: disableipv6.conf.j2
-    dest: /etc/sysctl.d/10-disable-ipv6.conf
-  notify: 'run sysctl'
