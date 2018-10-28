@@ -1,0 +1,13 @@
+---
+# defaults file for create_lvm_partition
+# Name of block device
+device_name: /dev/sdb
+
+#Name of Volume Group
+vg_name: testVG
+
+#Name of LV
+lvm_name: testLVM
+
+#Location to mount the LVM partition
+mount_point: /apps/testing

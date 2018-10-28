@@ -1,0 +1,24 @@
+---
+# tasks file for create_lvm_partition
+- name: Create VolumeGroup
+  lvg:
+    vg: "{{ vg_name }}"
+    pvs: "{{ device_name }}"
+
+- name: Create new LVM partition
+  lvol:
+    vg: "{{ vg_name }}"
+    lv: "{{ lvm_name }}"
+    size: 80%VG
+
+- name: Create filesystem for LVM
+  filesystem:
+    fstype: xfs
+    dev: "/dev/{{ vg_name }}/{{ lvm_name }}"
+
+- name: Mount the LVM partiton
+  mount:
+    name: /apps/testing
+    src: "/dev/{{ vg_name }}/{{ lvm_name }}"
+    fstype: xfs
+    state: mounted

@@ -1,0 +1,24 @@
+---
+# handlers file for update_kernel
+- name: 'Reboot server'
+  shell: 'sleep 5 && shutdown -r now "Rebooting to complete system upgrade"'
+  become: yes
+  async: 300
+  poll: 0
+  listen: 'restart server'
+
+- name: 'Wait for host to become available again'
+  wait_for_connection:
+    delay: 30
+    connect_timeout: 10
+    sleep: 10
+    timeout: 300
+  listen: 'restart server'
+
+- name: restart sshd
+  systemd:
+    state: restarted 
+    name: sshd
+
+- name: run sysctl
+  command: sysctl -p
