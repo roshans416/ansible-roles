@@ -1,0 +1,120 @@
+---
+# tasks file for create-openshift-objects
+
+#Please replce the host entry with your Openshift cluster FQDN or Openshift master hostname.
+- hosts: openshift-master
+  gather_facts: no
+  #include_vars: files/bu_list_dict.yaml
+  tasks:
+    - name: Include the oc env variables in the task
+      include_vars: ../vars/envvars.yml
+      delegate_to: 127.0.0.1
+
+    - name: Getting BU LIST
+      shell: "cat ../files/bu_list"
+      register: list_of_bu
+      delegate_to: 127.0.0.1
+   
+    - name: Checking ansible-user service account is already created
+      shell: oc get serviceaccounts --all-namespaces | grep "{{sa_user}}"
+      register: serviceaccount_stat
+      delegate_to: 127.0.0.1
+      failed_when: "'Permision denied' in serviceaccount_stat.stderr"
+
+    - name: Create ansible-user service account
+      shell: oc create serviceaccount "{{sa_user}}" -n default
+      when: serviceaccount_stat.rc != 0
+      delegate_to: 127.0.0.1
+
+    - name: Checking whether ansible-user-role (ClusterRole) is already created.
+      shell: oc get clusterroles | grep ansible-user-role
+      register: clusterrole_stat
+      delegate_to: 127.0.0.1
+      #ignore_errors: true
+      failed_when: "'Permision denied' in clusterrole_stat.stderr"
+
+    - name: Create new ClusterRole(ansible-user-role)
+      shell: oc create -f ../files/ansible-user-role.yaml
+      #register: ansiblerole_stat
+      delegate_to: 127.0.0.1
+      #failed_when: "'Permision denied' in ansiblerole_stat.stderr"
+      when: clusterrole_stat.rc != 0
+
+
+    - name: Create ClusterRoleBinding for service account ansible-user
+      shell: "oc adm policy add-cluster-role-to-user ansible-user-role system:serviceaccount:default:{{sa_user}}"
+      delegate_to: 127.0.0.1
+      register: clusterrolebinding_stat
+      failed_when: "'Permision denied' in clusterrolebinding_stat.stderr"
+
+    - name: Getting the service account token for {{sa_user}}
+      shell: openshift cli serviceaccounts get-token "{{sa_user}}"
+      register: token
+
+    #- name: Create projects for non-prod Openshift cluster
+     # debug: msg="oc new-project project-{{item.0.split('  ')[0]}}-{{item.1}} --display-name={{item.0.split('  ')[1]}}"
+     # with_nested:
+      #  - "{{list_of_bu.stdout_lines}}"
+       # - "{{nonprod_list}}"
+      #when: ocenv == 'non-prod'
+
+    #- name: Add token to a file
+    #  shell: "echo {{token}} >> ../files/token.txt"
+
+    - name: Create projects for non-prod Openshift cluster
+      oc:
+        state: present
+        host: "{{openshift_host}}"
+        inline:
+          kind: ProjectRequest
+          metadata:
+            name: project-{{item.0.split('  ')[0]}}-{{item.1}}
+          displayName: "{{item.0.split('  ')[1]}}-({{item.1}})"
+        token: "{{token.stdout}}"
+      with_nested:
+        - "{{list_of_bu.stdout_lines}}"
+        - "{{nonprod_list}}"
+      when: ocenv == 'non-prod'
+
+    - name: Create projects for prod Openshift cluster
+      oc:
+        state: present
+        host: "{{openshift_host}}"
+        inline:
+          kind: ProjectRequest
+          metadata:
+            name: project-{{item.split('  ')[0]}}-{{ocenv}}
+          displayName: "{{item.split('  ')[1]}}-({{ocenv}})"
+        token: "{{token.stdout}}"
+      with_items:
+        - "{{list_of_bu.stdout_lines}}"
+      when: ocenv == 'prod'
+
+    - name: Create groups for non-prod Openshift projects
+      oc:
+        state: present
+        host: "{{openshift_host}}"
+        inline:
+          kind: Group
+          metadata:
+             name: group-{{item.0.split('  ')[0]}}-{{item.1}}
+          users: []
+        token: "{{token.stdout}}"
+      with_nested:
+        - "{{list_of_bu.stdout_lines}}"
+        - "{{nonprod_list}}"
+      when: ocenv == 'non-prod'
+
+    - name: Create groups for prod Openshift projects
+      oc:
+        state: present
+        host: "{{openshift_host}}"
+        inline:
+          kind: Group
+          metadata:
+             name: group-{{item.0.split('  ')[0]}}-{{ocenv}}
+          users: []
+        token: "{{token.stdout}}"
+      with_items:
+        - "{{list_of_bu.stdout_lines}}"
+      when: ocenv == 'prod'

@@ -1,0 +1,69 @@
+---
+# tasks file for ldap-openshift-group-sync
+#Modify the hosts entry to match your inventory
+- hosts: openshift-master
+  gather_facts: no
+  #include_vars: files/bu_list_dict.yaml
+  tasks:
+    - name: Check if .cron and directory exists under root directory
+      stat:
+        path: /root/.cron
+      register: cron_dir_stat
+
+    - name: Check if .ldap directory exists under root directory
+      stat:
+        path: /root/.ldap
+      register: ldap_dir_stat
+
+    #- debug: msg={{cron_dir_stat}}
+    - name: Create cron directory under /root if not already exists
+      file:
+        path: /root/.{{item}}
+        state: directory
+      when: not {{item}}_dir_stat.stat.exists
+      with_items:
+        - 'cron'
+        - 'ldap'
+
+    - cron:
+        name: "Adding ldap-sync script"
+        minute: 0
+        hour: 12
+        user: root
+        cron_file: ldap-sync
+        job: "/bin/sh /root/.cron/ldap-sync.sh > /root/.cron/ldap-sync.log 2>&1"
+
+    - cron:
+        name: "Adding group_to_project_map script"
+        minute: 5
+        hour: 12
+        user: root
+        cron_file: group_to_project_map
+        job: "/bin/sh /root/.cron/group_to_project_map.sh > /root/.cron/ldap-sync.log 2>&1"
+
+    - name: Create a log file for cron output
+      file: path=/root/.cron/ldap-sync.log state=touch
+
+    - name: Checking ldapsearch command is available
+      command: rpm -q openldap-clients
+      register: is_installed
+      ignore_errors: yes
+
+
+    - name: Install openldap-clients package
+      yum:
+        state=installed
+        name=openldap-clients
+      when: is_installed.rc != 0
+
+    - name: Copying files to /root/.cron directory
+      copy:
+        src: ../files/{{item}}
+        dest: /root/.cron
+      with_items:
+        - 'ldap-sync.sh'
+        - 'group_to_project_map.sh'
+        - 'augmented_ad_config_nested.yml'
+
+    - name: Creating a file under /root/.ldap to save ldap password
+      file: path=/root/.ldap/ldap.conf state=touch mode=0600

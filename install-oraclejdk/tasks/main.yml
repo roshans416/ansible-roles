@@ -1,0 +1,6 @@
+---
+- name: Java | Install OracleJDK implementation using distributed binaries
+  include_tasks: install_oraclejdk.yml
+  when: java_implementation == 'oraclejdk'
+  tags:
+    - install

@@ -1,0 +1,51 @@
+---
+# tasks file for modify-service-catalog
+#Please modify the hosts name to match with whay you have configured in your Ansible inventory.
+- hosts: openshift-master
+  gather_facts: no
+  #include_vars: files/bu_list_dict.yaml
+  tasks:
+    - name: Include the oc env variables in the task
+      include_vars: ../vars/envvars.yml
+      delegate_to: 127.0.0.1
+
+    - name: Create csc_name_id_map_{{ocenv}} file
+      shell: touch ../files/csc_name_id_map_{{ocenv}}
+      delegate_to: 127.0.0.1
+
+    - name: Generating ClusterServiceClass ID to NAME map
+      #shell: 'oc get clusterserviceclasses -o=jsonpath='{range.items[*]}{.spec.externalID} {.spec.externalName}:{end}' | tr ":" "\n" > ../files/csc_name_id_map'
+      shell: "oc get clusterserviceclasses -o=custom-columns=ID:.spec.externalID,NAME:.spec.externalName | grep -v NAME"
+      register: csc_name_id_map
+      delegate_to: 127.0.0.1
+
+    - name: Writing csc_name_id_map to csc_name_id_map_{{ocenv}}
+      local_action: copy content={{ csc_name_id_map.stdout }} dest=../files/csc_name_id_map_{{ocenv}}
+
+    - name: Getting list of ClusterServiceClass to be deleted. (To be removed after playbook execution)
+      shell: "cat ../files/csc_name_id_map_{{ocenv}} | grep -v {{item}} | tee ../files/csc_name_id_map_{{ocenv}}"
+      with_items:
+        - "{{csc_ext_name_list}}"  
+      delegate_to: 127.0.0.1
+ 
+    - name: Backing up the ClusterServiceClasses
+      shell: "oc export clusterserviceclasses > ../files/csc-exported-{{ocenv}}-{{ lookup('pipe', 'date +%Y%m%d-%H%M') }}.yaml"
+      delegate_to: 127.0.0.1
+    
+    - name: Backing up all the templates from "openshift" namespace
+      shell: "oc export templates -n openshift > ../files/templates-exported-{{ocenv}}-{{ lookup('pipe', 'date +%Y%m%d-%H%M') }}.yaml"
+      delegate_to: 127.0.0.1
+ 
+    
+    - name: Registering new variable
+      shell: "cat ../files/csc_name_id_map_{{ocenv}}"
+      register: csc_to_delete
+      delegate_to: 127.0.0.1
+
+    - name: Deleting templates
+      shell: "oc delete templates/{{item.split('   ')[1]}} -n openshift"
+      with_items: "{{csc_to_delete.stdout_lines}}"
+
+    - name: Deleting ClusterServiceClasses
+      shell: "oc delete clusterserviceclass/{{item.split(' ')[0]}} -n openshift"
+      with_items: "{{csc_to_delete.stdout_lines}}"

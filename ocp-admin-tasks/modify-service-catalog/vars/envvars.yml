@@ -1,0 +1,11 @@
+---
+#Openshift Cluster (Prod or Non-Prod)
+ocenv: 'non-prod'
+#Openshift non-prod projects name suffix
+nonprod_list: ['sit', 'uat', 'dev']
+#Name of templates to be retained in service catalog
+csc_ext_name_list: ['mysql-ephemeral', 'jenkins-ephemeral', 'mariadb-ephemeral']
+#Openshift Service Accout  user name
+sa_user: 'ansible-user'
+#Name or FQDN of Openshift master or endpoint
+openshift_host: 'openshift-master'

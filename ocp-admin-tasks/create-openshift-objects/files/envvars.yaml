@@ -1,0 +1,7 @@
+---
+# Openshift cluster, prod or non-prod
+ocenv: 'prod'
+# Openshift non-prod project name suffix
+nonprod_list: ['sit', 'uat', 'dev']
+# Name of openshift app templates to be retained in Service Catalog 
+csc_ext_name_list: ['mysql-ephemeral', 'jenkins-ephemeral', 'mariadb-ephemeral']

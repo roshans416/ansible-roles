@@ -1,0 +1,12 @@
+---
+# Older versions requires login to be downloaded
+# http://www.oracle.com/technetwork/java/archive-139210.html
+java_oracle_jdk_latest_versions_urls:
+  1.8.0_211:
+    url: https://download.oracle.com/otn/java/jdk/8u211-b12/478a62b7d4e34b78b671c754eaaf38ab/jdk-8u211-linux-x64.tar.gz    
+    # https://www.oracle.com/webfolder/s/digest/8u201checksum.html
+    sha256: db3ba91c78b950269380d8f6872befed94176f619cefbcd7877e3624512e0218
+  1.8.0_212:
+    url: https://download.oracle.com/otn/java/jdk/8u212-b10/59066701cf1a433da9770636fbc4c9aa/jdk-8u212-linux-x64.tar.gz 
+    # https://www.oracle.com/webfolder/s/digest/8u202checksum.html
+    sha256: 5690fb12a2fa312efe79221bf6b626e565f1144260da21284f4129566f163dde

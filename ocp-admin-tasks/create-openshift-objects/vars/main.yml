@@ -1,0 +1,3 @@
+ocenv: 'non-prod'
+nonprod_list: ['sit', 'uat', 'dev']
+csc_ext_name_list: ['mysql-ephemeral', 'jenkins-ephemeral', 'mariadb-ephemeral']

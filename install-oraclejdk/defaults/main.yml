@@ -1,0 +1,6 @@
+---
+
+# OracleJDK implementation (provides only support for x64 architectures)
+# [1.8.0_211, 1.8.0_212] (see available urls in ../vars/main.yml)
+java_oracle_jdk_version: 1.8.0_211
+java_oracle_jdk_install_path: /opt/jdk/{{ java_oracle_jdk_version }}

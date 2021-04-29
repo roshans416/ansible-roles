@@ -1,0 +1,20 @@
+kind: LDAPSyncConfig
+apiVersion: v1
+url: ldaps://****.example.intranet.asia:636
+ca: adcert.pem
+bindDN: CN=SRVSGRHOCntrMgmt,OU=Users,OU=RHO,OU=SG,DC=EXAMPLE,DC=intranet,DC=asia
+bindPassword: *******
+augmentedActiveDirectory:
+  groupsQuery:
+    derefAliases: never
+    pageSize: 0
+  groupUIDAttribute: dn
+  groupNameAttributes: [ cn ]
+  usersQuery:
+    baseDN: "DC=example,DC=intranet,DC=asia"
+    scope: sub
+    derefAliases: never
+    filter: (objectclass=user)
+    pageSize: 0
+  userNameAttributes: [ dn ]
+  groupMembershipAttributes: [ "memberOf:1.2.840.113556.1.4.1941:" ] 

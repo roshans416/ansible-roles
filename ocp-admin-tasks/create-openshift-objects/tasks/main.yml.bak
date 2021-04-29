@@ -1,0 +1,113 @@
+---
+# tasks file for create-openshift-objects
+- hosts: openshift-masters
+  gather_facts: no
+  #include_vars: files/bu_list_dict.yaml
+  tasks:
+    - name: Checking oc status
+      shell: oc status
+      register: oc_stat
+      ignore_errors: True
+      delegate_to: 127.0.0.1
+
+    - name: Debugging oc_stat
+      debug: msg={{oc_stat}}
+      delegate_to: 127.0.0.1
+
+    #- name: Getting BU LIST
+    #  shell: "cat ../files/bu_list"
+    #  register: bu_list
+
+    #- name: Include the bu_list variables in the task
+    #  include_vars: ../vars/bu_list_dict.yaml
+
+    - name: Include the oc env variables in the task
+      include_vars: ../vars/envvars.yml
+      delegate_to: 127.0.0.1
+
+    - name: Getting BU LIST
+      shell: "cat ../files/bu_list"
+      register: list_of_bu
+      delegate_to: 127.0.0.1
+
+    #- name: Debugging list_of_bu
+    #  debug: msg= "{{list_of_bu}}"
+
+    - name: Create projects for non-prod Openshift cluster
+      debug: msg="oc new-project project-{{item.0.split('  ')[0]}}-{{item.1}} --display-name={{item.0.split('  ')[1]}}"
+      with_nested:
+        - "{{list_of_bu.stdout_lines}}"
+        - "{{nonprod_list}}"
+      when: ocenv == 'non-prod'
+
+    - name: Create projects for non-prod Openshift cluster
+      oc: 
+        state: present
+        inline:
+          kind: ProjectRequest
+          metadata:
+            name: project-{{item.0.split('  ')[0]}}-{{item.1}}
+          displayName: "{{item.0.split('  ')[1]}}"
+        token: "{{token_nonprod}}"      
+      with_nested:
+        - "{{list_of_bu.stdout_lines}}"
+        - "{{nonprod_list}}"
+      when: ocenv == 'non-prod'
+
+    - name: Create projects for prod Openshift cluster
+      oc:
+        state: present
+        inline:
+          kind: ProjectRequest
+          metadata:
+            name: project-{{item.split('  ')[0]}}-{{ocenv}}
+          displayName: "{{item.split('  ')[1]}}"
+        token: "{{token_prod}}"
+      with_items:
+        - "{{list_of_bu.stdout_lines}}"
+      when: ocenv == 'prod'
+
+    #- name: Create projects for prod Openshift cluster
+    #  debug: msg="oc new-project project-{{item.split('  ')[0]}}-{{ocenv}} --display-name={{item.split('  ')[1]}}"
+    #  with_items:
+    #    - "{{bu_list.stdout_lines}}"
+    #  when: ocenv == 'prod'
+
+
+    #- name: Create groups for non-prod Openshift projects
+    #  debug: msg="oc adm groups new  group-{{item.0.split('\t')[0]}}-{{item.1}}"
+    #  with_nested:
+    #    - "{{bu_list.stdout_lines}}"
+    #    - "{{nonprod_list}}"
+    #  when: ocenv == 'non-prod'
+
+    - name: Create groups for non-prod Openshift projects
+      oc:
+        state: present
+        inline:
+          kind: Group
+          metadata:
+             name: group-{{item.0.split('  ')[0]}}-{{item.1}}
+          users: []
+      with_nested:
+        - "{{list_of_bu.stdout_lines}}"
+        - "{{nonprod_list}}"
+      when: ocenv == 'non-prod'
+
+    #- name: Create groups for prod Openshift projects
+     # debug: msg="oc adm groups new  group-{{item.split('\t')[0]}}-{{ocenv}}"
+     # with_items:
+     #   - "{{bu_list.stdout_lines}}"
+     # when: ocenv == 'prod'
+
+    - name: Create groups for prod Openshift projects
+      oc: 
+        state: present
+        inline:
+          kind: Group
+          metadata:
+             name: group-{{item.0.split('  ')[0]}}-{{ocenv}}
+          users: []
+      with_items:
+        - "{{list_of_bu.stdout_lines}}"
+      when: ocenv == 'prod'
